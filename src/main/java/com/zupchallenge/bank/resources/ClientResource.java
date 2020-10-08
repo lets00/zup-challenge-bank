@@ -7,6 +7,7 @@ import java.time.Period;
 import javax.validation.Valid;
 
 import com.zupchallenge.bank.models.Address;
+import com.zupchallenge.bank.models.CNH;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
@@ -31,7 +32,7 @@ public class ClientResource {
 
 	private HttpHeaders mountHeader(String route, String token) {
 		HttpHeaders responseHeaders = new HttpHeaders();
-		responseHeaders.set("location", "http://localhost:8080/" + route);
+		responseHeaders.set("location", "http://localhost:8080/v1/" + route);
 		responseHeaders.set("token", token);
 		return responseHeaders;
 	}
@@ -85,6 +86,24 @@ public class ClientResource {
 			return ResponseEntity.created(null).headers(responseHeaders).build();
 		} else {
 			return ResponseEntity.badRequest().build();
+		}
+	}
+
+	@PostMapping("/cnh")
+	public ResponseEntity<String> createCNH(@Valid @RequestBody CNH cnh, @RequestHeader("token") String jwt) {
+		Client clientByCpf = cr.findByCpf(jwt);
+		if (clientByCpf != null) {
+			if (clientByCpf.getCep() != null) {
+				clientByCpf.setCnh_front_url(cnh.getCnh_front_url());
+				clientByCpf.setCnh_back_url(cnh.getCnh_back_url());
+				cr.save(clientByCpf);
+				HttpHeaders responseHeaders = mountHeader("proposal", jwt);
+				return ResponseEntity.created(null).headers(responseHeaders).build();
+			} else {
+				return ResponseEntity.unprocessableEntity().build();
+			}
+		} else {
+			return ResponseEntity.notFound().build();
 		}
 	}
 }
