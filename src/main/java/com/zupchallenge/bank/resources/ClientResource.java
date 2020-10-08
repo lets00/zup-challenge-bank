@@ -6,15 +6,12 @@ import java.time.Period;
 
 import javax.validation.Valid;
 
-import com.zupchallenge.bank.models.Address;
-import com.zupchallenge.bank.models.CNH;
+import com.zupchallenge.bank.models.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import com.zupchallenge.bank.models.UserInfo;
-import com.zupchallenge.bank.models.Client;
 import com.zupchallenge.bank.repository.ClientRepository;
 
 @RestController
@@ -102,6 +99,38 @@ public class ClientResource {
 			} else {
 				return ResponseEntity.unprocessableEntity().build();
 			}
+		} else {
+			return ResponseEntity.notFound().build();
+		}
+	}
+
+	@GetMapping("/proposal")
+	public ResponseEntity<Client> createCNH(@RequestHeader("token") String jwt) {
+		Client clientByCpf = cr.findByCpf(jwt);
+		if (clientByCpf != null) {
+			if (clientByCpf.getCnh_front_url() != null) {
+				return ResponseEntity.ok(clientByCpf);
+			} else {
+				return ResponseEntity.unprocessableEntity().build();
+			}
+		} else {
+			return ResponseEntity.notFound().build();
+		}
+	}
+
+	@PostMapping("/proposal")
+	public ResponseEntity<JsonMessage> acceptOrReject(@RequestHeader("token") String jwt, @RequestParam("accept") String accept) {
+		Client clientByCpf = cr.findByCpf(jwt);
+		if (clientByCpf != null) {
+			JsonMessage msg;
+			if (accept.equals("true")) {
+				// send a email to create account
+				msg = new JsonMessage("Proposal accept. I'll send a email with respective accept process");
+			} else {
+				// send a email begging to create account
+				msg = new JsonMessage("Proposal declined");
+			}
+			return ResponseEntity.ok(msg);
 		} else {
 			return ResponseEntity.notFound().build();
 		}
