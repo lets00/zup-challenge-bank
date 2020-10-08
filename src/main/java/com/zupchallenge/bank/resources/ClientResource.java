@@ -10,6 +10,8 @@ import com.zupchallenge.bank.models.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.web.bind.annotation.*;
 
 import com.zupchallenge.bank.repository.ClientRepository;
@@ -19,6 +21,17 @@ import com.zupchallenge.bank.repository.ClientRepository;
 public class ClientResource {
 	@Autowired
 	ClientRepository cr;
+
+	@Autowired
+	private JavaMailSender javaMailSender;
+
+	private void sendProposalToCreateAccount(String email, String link) {
+		SimpleMailMessage msg = new SimpleMailMessage();
+		msg.setTo(email);
+		msg.setSubject("Testing from Spring Boot");
+		msg.setText("Hello World \n Spring Boot Email \n " + link);
+		javaMailSender.send(msg);
+	}
 	
 	private boolean hasLegalAge(String date) throws DateTimeException {
 		LocalDate birthday = LocalDate.parse(date);
@@ -35,14 +48,13 @@ public class ClientResource {
 	}
 	
 	@PostMapping("/client-info")
-	public ResponseEntity<String> createBasicInformation(@Valid @RequestBody UserInfo user) {
+	public ResponseEntity<JsonMessage> createBasicInformation(@Valid @RequestBody UserInfo user) {
 		Client clientsByCpf = cr.findByCpf(user.getCpf());
 		Client clientsByEmail = cr.findByEmail(user.getEmail());
 		if(clientsByCpf == null && clientsByEmail == null) {
 			try {
 				if (hasLegalAge(user.getBirthday_date())) {
 					// Create a client and put user data on it
-
 					Client client = new Client();
 					client.setName(user.getName());
 					client.setSurname(user.getSurname());
@@ -57,18 +69,21 @@ public class ClientResource {
 					return ResponseEntity.created(null).headers(responseHeaders).build();
 				}
 				else {
-					return ResponseEntity.badRequest().body("You haven't Legal age (>=18 years old)");
+					JsonMessage message = new JsonMessage("You haven't Legal age (>=18 years old)");
+					return ResponseEntity.badRequest().body(message);
 				}
 			} catch (DateTimeException e_date) {
-				return ResponseEntity.badRequest().body("Incorrect Date");
+				JsonMessage message = new JsonMessage("Incorrect Date");
+				return ResponseEntity.badRequest().body(message);
 			}
 		} else {
-			return ResponseEntity.badRequest().body("CPF or Email already registred");
+			JsonMessage message = new JsonMessage("CPF or Email already registred");
+			return ResponseEntity.badRequest().body(message);
 		}
 	}
 
 	@PostMapping("/address")
-	public ResponseEntity<String> createAddress(@Valid @RequestBody Address address, @RequestHeader("token") String jwt) {
+	public ResponseEntity<JsonMessage> createAddress(@Valid @RequestBody Address address, @RequestHeader("token") String jwt) {
 		Client clientsByCpf = cr.findByCpf(jwt);
 		if (clientsByCpf != null) {
 			clientsByCpf.setCep(address.getCep());
@@ -87,7 +102,7 @@ public class ClientResource {
 	}
 
 	@PostMapping("/cnh")
-	public ResponseEntity<String> createCNH(@Valid @RequestBody CNH cnh, @RequestHeader("token") String jwt) {
+	public ResponseEntity<JsonMessage> createCNH(@Valid @RequestBody CNH cnh, @RequestHeader("token") String jwt) {
 		Client clientByCpf = cr.findByCpf(jwt);
 		if (clientByCpf != null) {
 			if (clientByCpf.getCep() != null) {
@@ -126,6 +141,7 @@ public class ClientResource {
 			if (accept.equals("true")) {
 				// send a email to create account
 				msg = new JsonMessage("Proposal accept. I'll send a email with respective accept process");
+				sendProposalToCreateAccount("eduardovansilva@gmail.com", "opa!");
 			} else {
 				// send a email begging to create account
 				msg = new JsonMessage("Proposal declined");
