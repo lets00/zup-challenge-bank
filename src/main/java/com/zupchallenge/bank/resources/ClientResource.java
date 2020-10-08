@@ -3,17 +3,14 @@ package com.zupchallenge.bank.resources;
 import java.time.DateTimeException;
 import java.time.LocalDate;
 import java.time.Period;
-import java.util.List;
 
 import javax.validation.Valid;
 
+import com.zupchallenge.bank.models.Address;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import com.zupchallenge.bank.models.UserInfo;
 import com.zupchallenge.bank.models.Client;
@@ -31,12 +28,19 @@ public class ClientResource {
 		int diff_year = Period.between(birthday, actual).getYears();
 		return diff_year >=18;
 	}
+
+	private HttpHeaders mountHeader(String route, String token) {
+		HttpHeaders responseHeaders = new HttpHeaders();
+		responseHeaders.set("location", "http://localhost:8080/" + route);
+		responseHeaders.set("token", token);
+		return responseHeaders;
+	}
 	
 	@PostMapping("/client-info")
 	public ResponseEntity<String> createBasicInformation(@Valid @RequestBody UserInfo user) {
-		List<Client> clientsByCpf = cr.findByCpf(user.getCpf());
-		List<Client> clientsByEmail = cr.findByEmail(user.getEmail());
-		if(clientsByCpf.size() == 0 && clientsByEmail.size() == 0) {
+		Client clientsByCpf = cr.findByCpf(user.getCpf());
+		Client clientsByEmail = cr.findByEmail(user.getEmail());
+		if(clientsByCpf == null && clientsByEmail == null) {
 			try {
 				if (hasLegalAge(user.getBirthday_date())) {
 					// Create a client and put user data on it
@@ -51,8 +55,7 @@ public class ClientResource {
 
 					cr.save(client);
 					// Response with address route
-					HttpHeaders responseHeaders = new HttpHeaders();
-					responseHeaders.set("location", "http://localhost:8080/address?cpf=" + user.getCpf());
+					HttpHeaders responseHeaders = mountHeader("address", user.getCpf());
 					return ResponseEntity.created(null).headers(responseHeaders).build();
 				}
 				else {
@@ -61,10 +64,27 @@ public class ClientResource {
 			} catch (DateTimeException e_date) {
 				return ResponseEntity.badRequest().body("Incorrect Date");
 			}
-
 		} else {
 			return ResponseEntity.badRequest().body("CPF or Email already registred");
 		}
 	}
 
+	@PostMapping("/address")
+	public ResponseEntity<String> createAddress(@Valid @RequestBody Address address, @RequestHeader("token") String jwt) {
+		Client clientsByCpf = cr.findByCpf(jwt);
+		if (clientsByCpf != null) {
+			clientsByCpf.setCep(address.getCep());
+			clientsByCpf.setStreet(address.getStreet());
+			clientsByCpf.setCity(address.getCity());
+			clientsByCpf.setState(address.getState());
+			clientsByCpf.setNeighborhood(address.getNeighborhood());
+			clientsByCpf.setComplement(address.getComplement());
+			cr.save(clientsByCpf);
+
+			HttpHeaders responseHeaders = mountHeader("cnh", jwt);
+			return ResponseEntity.created(null).headers(responseHeaders).build();
+		} else {
+			return ResponseEntity.badRequest().build();
+		}
+	}
 }
