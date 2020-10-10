@@ -10,6 +10,7 @@ import com.zupchallenge.bank.models.*;
 import com.zupchallenge.bank.services.auth.JwtService;
 import com.zupchallenge.bank.services.email.EmailService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -27,6 +28,9 @@ public class ClientResource {
 
 	@Autowired
 	JwtService token;
+
+	@Value("${app.host.url}")
+	private String HOST_URL;
 	
 	private boolean hasLegalAge(String date) throws DateTimeException {
 		LocalDate birthday = LocalDate.parse(date);
@@ -37,7 +41,7 @@ public class ClientResource {
 
 	private HttpHeaders mountHeader(String route, String token) {
 		HttpHeaders responseHeaders = new HttpHeaders();
-		responseHeaders.set("location", "http://localhost:8080/v1/" + route);
+		responseHeaders.set("location", HOST_URL + "/v1/" + route);
 		responseHeaders.set("token", token);
 		return responseHeaders;
 	}
@@ -144,7 +148,7 @@ public class ClientResource {
 				emailMsg = "Create your account, please. I begging you!";
 			}
 			String tk = token.generateToken(jwt);
-			String accountLink = "http://localhost:8080/v1/account/create?token=" + tk;
+			String accountLink = HOST_URL + "/v1/account/create?token=" + tk;
 			emailService.sendEmail(clientByCpf.getEmail(), emailMsg, accountLink);
 			return ResponseEntity.ok(msg);
 		} else {
