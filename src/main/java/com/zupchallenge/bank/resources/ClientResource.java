@@ -6,13 +6,12 @@ import java.time.Period;
 
 import javax.validation.Valid;
 
-import com.zupchallenge.bank.auth.JWT;
 import com.zupchallenge.bank.models.*;
+import com.zupchallenge.bank.services.auth.JwtService;
+import com.zupchallenge.bank.services.email.EmailService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.web.bind.annotation.*;
 
 import com.zupchallenge.bank.repository.ClientRepository;
@@ -24,17 +23,10 @@ public class ClientResource {
 	ClientRepository cr;
 
 	@Autowired
-	private JavaMailSender javaMailSender;
+	EmailService emailService;
 
-	private JWT token;
-
-	private void sendProposalByEmail(String email, String subject, String message) {
-		SimpleMailMessage msg = new SimpleMailMessage();
-		msg.setTo(email);
-		msg.setSubject(subject);
-		msg.setText(message);
-		javaMailSender.send(msg);
-	}
+	@Autowired
+	JwtService token;
 	
 	private boolean hasLegalAge(String date) throws DateTimeException {
 		LocalDate birthday = LocalDate.parse(date);
@@ -151,10 +143,9 @@ public class ClientResource {
 				msg = new JsonMessage("Proposal declined");
 				emailMsg = "Create your account, please. I begging you!";
 			}
-			token = new JWT();
 			String tk = token.generateToken(jwt);
 			String accountLink = "http://localhost:8080/v1/account/create?token=" + tk;
-			sendProposalByEmail(clientByCpf.getEmail(), emailMsg, accountLink);
+			emailService.sendEmail(clientByCpf.getEmail(), emailMsg, accountLink);
 			return ResponseEntity.ok(msg);
 		} else {
 			return ResponseEntity.notFound().build();
