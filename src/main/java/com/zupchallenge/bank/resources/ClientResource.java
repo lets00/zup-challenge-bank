@@ -6,6 +6,7 @@ import java.time.Period;
 
 import javax.validation.Valid;
 
+import com.zupchallenge.bank.auth.JWT;
 import com.zupchallenge.bank.models.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -25,11 +26,13 @@ public class ClientResource {
 	@Autowired
 	private JavaMailSender javaMailSender;
 
-	private void sendProposalToCreateAccount(String email, String link) {
+	private JWT token;
+
+	private void sendProposalByEmail(String email, String subject, String message) {
 		SimpleMailMessage msg = new SimpleMailMessage();
 		msg.setTo(email);
-		msg.setSubject("Testing from Spring Boot");
-		msg.setText("Hello World \n Spring Boot Email \n " + link);
+		msg.setSubject(subject);
+		msg.setText(message);
 		javaMailSender.send(msg);
 	}
 	
@@ -138,14 +141,20 @@ public class ClientResource {
 		Client clientByCpf = cr.findByCpf(jwt);
 		if (clientByCpf != null) {
 			JsonMessage msg;
+			String emailMsg;
 			if (accept.equals("true")) {
 				// send a email to create account
 				msg = new JsonMessage("Proposal accept. I'll send a email with respective accept process");
-				sendProposalToCreateAccount("eduardovansilva@gmail.com", "opa!");
+				emailMsg = "Create your account!";
 			} else {
 				// send a email begging to create account
 				msg = new JsonMessage("Proposal declined");
+				emailMsg = "Create your account, please. I begging you!";
 			}
+			token = new JWT();
+			String tk = token.generateToken(jwt);
+			String accountLink = "http://localhost:8080/v1/account/create?token=" + tk;
+			sendProposalByEmail(clientByCpf.getEmail(), emailMsg, accountLink);
 			return ResponseEntity.ok(msg);
 		} else {
 			return ResponseEntity.notFound().build();
