@@ -2,6 +2,11 @@
 
 This challenge was propose by Zup to subscribe in bootcamp 2020.2. The business rules can be found [here](https://trello.com/b/aiSaSAbi/nosso-banco-digital) (in Portuguese).
 
+## Using the project
+
+The project is up on **heroku** server and you can use it in this [link](https://zup-challenge-bank.herokuapp.com/).
+Please, see **Routes** session to know how to consume it.
+
 ## Run project locally
 
 First, you must guarantee docker and docker-compose are installed and work on your machine. After that, clone this repo and execute:
@@ -18,7 +23,7 @@ By default, the app will be up on port **8080**
 
 ## Routes
 
-All routes can be access on http://localhost:8080/v1. 
+All routes can be access on http://localhost:8080/v1/ (or, https://zup-challenge-bank.herokuapp.com/v1/). 
 This is the first version of API. If in the future you decide to change the access form (add or remove fields on a header or body), you be able to change without break some app client that is consuming your old API version. 
 
 ### (POST) /v1/client-info
@@ -84,6 +89,8 @@ Registers the specific customer information.
 * **cnh_front_url**: customer's valid image URL CNH front.
 * **cnh_back_url**: customer's valid image URL CNH back.
 
+**Response**:
+
 **Header**:
 * **location**: next route (/v1/cnh).
 * **token**: customer's CPF.
@@ -146,8 +153,42 @@ Creates an account and send via email the information about it.
 * **422**: Account already created.
 * **500**: Token validation errors (invalid or expired).
 
+### (POST) /v1/account/confirm
+
+Confirm your user information and creates a token to logon that will be sent to email.
+
+**Request**:
+
+**Body**:
+* **cpf**: customer's CPF number (Código de Pessoa Física). It must be a **string**.
+* **email**: customer's valid email.
+
+**Response**:
+
+**Status code**:
+* **200**: Ok.
+* **404**: user not found.
+
+### (POST) /v1/user/logon
+
+Create a user after confirmation.
+
+**Request**:
+
+**Body**:
+* **cpf**: customer's CPF number (Código de Pessoa Física). It must be a **string**.
+* **token**: customer's valid email.
+* **password**: customer's valid password.
+
+**Response**:
+
+**Status code**:
+* **201**: Created.
+* **400**: Expired/Revoked token.
+
 ## How to test/consume this API via Insomnia
 
-If you want test/consume this API using Insomnia, you can import the file bellow to your Insomnia environment.
+If you want test/consume this API using Insomnia, you can import the file below to your Insomnia environment.
 
-FILE HERE!
+* [zup-bank-local](insomnia-env/zup-bank-local.json)
+* [zup-bank-heroku](insomnia-env/zup-bank-local.json)
