@@ -21,7 +21,8 @@ $ ./mvnw package -DskipTests
 $ java -jar target/bank-0.0.1-SNAPSHOT.jar
 ```
 
-By default, the app will be up on port **8080**
+By default, the app will be up on port **8080**.
+See _/home/eduardo/eclipse-workspace/bank/src/main/resources/application.properties_ to change app variables. 
 
 ## Routes
 
