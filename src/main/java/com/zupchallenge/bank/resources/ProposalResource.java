@@ -15,13 +15,13 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import com.zupchallenge.bank.repository.ClientRepository;
+import com.zupchallenge.bank.repository.ProposalRepository;
 
 @RestController
 @RequestMapping(value="/v1/")
-public class ClientResource {
+public class ProposalResource {
 	@Autowired
-	ClientRepository cr;
+	ProposalRepository cr;
 
 	@Autowired
 	EmailService emailService;
@@ -48,21 +48,21 @@ public class ClientResource {
 	
 	@PostMapping("/client-info")
 	public ResponseEntity<JsonMessage> createBasicInformation(@Valid @RequestBody UserInfo user) {
-		Client clientsByCpf = cr.findByCpf(user.getCpf());
-		Client clientsByEmail = cr.findByEmail(user.getEmail());
+		Proposal clientsByCpf = cr.findByCpf(user.getCpf());
+		Proposal clientsByEmail = cr.findByEmail(user.getEmail());
 		if(clientsByCpf == null && clientsByEmail == null) {
 			try {
 				if (hasLegalAge(user.getBirthday_date())) {
 					// Create a client and put user data on it
-					Client client = new Client();
-					client.setName(user.getName());
-					client.setSurname(user.getSurname());
-					client.setEmail(user.getEmail());
-					client.setCnh_number(user.getCnh_number());
-					client.setCpf(user.getCpf());
-					client.setBirthday_date(user.getBirthday_date());
+					Proposal proposal = new Proposal();
+					proposal.setName(user.getName());
+					proposal.setSurname(user.getSurname());
+					proposal.setEmail(user.getEmail());
+					proposal.setCnh_number(user.getCnh_number());
+					proposal.setCpf(user.getCpf());
+					proposal.setBirthday_date(user.getBirthday_date());
 
-					cr.save(client);
+					cr.save(proposal);
 					// Response with address route
 					HttpHeaders responseHeaders = mountHeader("address", user.getCpf());
 					return ResponseEntity.created(null).headers(responseHeaders).build();
@@ -83,7 +83,7 @@ public class ClientResource {
 
 	@PostMapping("/address")
 	public ResponseEntity<JsonMessage> createAddress(@Valid @RequestBody Address address, @RequestHeader("token") String jwt) {
-		Client clientsByCpf = cr.findByCpf(jwt);
+		Proposal clientsByCpf = cr.findByCpf(jwt);
 		if (clientsByCpf != null) {
 			clientsByCpf.setCep(address.getCep());
 			clientsByCpf.setStreet(address.getStreet());
@@ -102,12 +102,12 @@ public class ClientResource {
 
 	@PostMapping("/cnh")
 	public ResponseEntity<JsonMessage> createCNH(@Valid @RequestBody CNH cnh, @RequestHeader("token") String jwt) {
-		Client clientByCpf = cr.findByCpf(jwt);
-		if (clientByCpf != null) {
-			if (clientByCpf.getCep() != null) {
-				clientByCpf.setCnh_front_url(cnh.getCnh_front_url());
-				clientByCpf.setCnh_back_url(cnh.getCnh_back_url());
-				cr.save(clientByCpf);
+		Proposal proposalByCpf = cr.findByCpf(jwt);
+		if (proposalByCpf != null) {
+			if (proposalByCpf.getCep() != null) {
+				proposalByCpf.setCnh_front_url(cnh.getCnh_front_url());
+				proposalByCpf.setCnh_back_url(cnh.getCnh_back_url());
+				cr.save(proposalByCpf);
 				HttpHeaders responseHeaders = mountHeader("proposal", jwt);
 				return ResponseEntity.created(null).headers(responseHeaders).build();
 			} else {
@@ -119,11 +119,11 @@ public class ClientResource {
 	}
 
 	@GetMapping("/proposal")
-	public ResponseEntity<Client> createCNH(@RequestHeader("token") String jwt) {
-		Client clientByCpf = cr.findByCpf(jwt);
-		if (clientByCpf != null) {
-			if (clientByCpf.getCnh_front_url() != null) {
-				return ResponseEntity.ok(clientByCpf);
+	public ResponseEntity<Proposal> createCNH(@RequestHeader("token") String jwt) {
+		Proposal proposalByCpf = cr.findByCpf(jwt);
+		if (proposalByCpf != null) {
+			if (proposalByCpf.getCnh_front_url() != null) {
+				return ResponseEntity.ok(proposalByCpf);
 			} else {
 				return ResponseEntity.unprocessableEntity().build();
 			}
@@ -134,8 +134,8 @@ public class ClientResource {
 
 	@PostMapping("/proposal")
 	public ResponseEntity<JsonMessage> acceptOrReject(@RequestHeader("token") String jwt, @RequestParam("accept") String accept) {
-		Client clientByCpf = cr.findByCpf(jwt);
-		if (clientByCpf != null) {
+		Proposal proposalByCpf = cr.findByCpf(jwt);
+		if (proposalByCpf != null) {
 			JsonMessage msg;
 			String emailMsg;
 			if (accept.equals("true")) {
@@ -149,7 +149,7 @@ public class ClientResource {
 			}
 			String tk = token.generateToken(jwt);
 			String accountLink = HOST_URL + "/v1/account/create?token=" + tk;
-			emailService.sendEmail(clientByCpf.getEmail(), emailMsg, accountLink);
+			emailService.sendEmail(proposalByCpf.getEmail(), emailMsg, accountLink);
 			return ResponseEntity.ok(msg);
 		} else {
 			return ResponseEntity.notFound().build();

@@ -1,10 +1,8 @@
 package com.zupchallenge.bank.resources;
 
-import com.zupchallenge.bank.models.Account;
-import com.zupchallenge.bank.models.Client;
-import com.zupchallenge.bank.models.JsonMessage;
+import com.zupchallenge.bank.models.*;
 import com.zupchallenge.bank.repository.AccountRepository;
-import com.zupchallenge.bank.repository.ClientRepository;
+import com.zupchallenge.bank.repository.ProposalRepository;
 import com.zupchallenge.bank.services.auth.JwtService;
 import com.zupchallenge.bank.services.email.EmailService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,6 +10,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import javax.validation.Valid;
 import java.util.Random;
 
 @RestController
@@ -24,7 +23,7 @@ public class AccountResource {
     AccountRepository ar;
 
     @Autowired
-    ClientRepository cr;
+    ProposalRepository cr;
 
     @Autowired
     JwtService token;
@@ -67,16 +66,33 @@ public class AccountResource {
             String cpf = token.getCpfOfToken(jwt);
             Account accountByCpf = ar.findByProposeCpf(cpf);
             if (accountByCpf == null) {
-                Client clientByCpf = cr.findByCpf(cpf);
+                Proposal proposalByCpf = cr.findByCpf(cpf);
                 Account newAccount = createAccount(cpf);
-                sendEmail(newAccount, clientByCpf.getEmail());
-                JsonMessage message = new JsonMessage("Account Created. Please view your email: " + clientByCpf.getEmail());
+                sendEmail(newAccount, proposalByCpf.getEmail());
+                JsonMessage message = new JsonMessage("Account Created. Please view your email: " + proposalByCpf.getEmail());
                 return ResponseEntity.ok(message);
             } else {
                 return ResponseEntity.unprocessableEntity().build();
             }
         } else {
             return ResponseEntity.unprocessableEntity().build();
+        }
+    }
+
+    @PostMapping("confirm")
+    public ResponseEntity<JsonMessage> confirmIdentity(@Valid @RequestBody ComfirmUser confirmUser) {
+        Proposal proposalByCpf = cr.findByCpf(confirmUser.getCpf());
+        if (proposalByCpf != null) {
+            if (proposalByCpf.getEmail().equals(confirmUser.getEmail())) {
+                String token = generateNumber(6);
+                emailService.sendEmail(confirmUser.getEmail(), "Your validate token", token);
+                JsonMessage message = new JsonMessage("Validate token sent to email: " + proposalByCpf.getEmail());
+                return ResponseEntity.ok(message);
+            } else {
+                return ResponseEntity.notFound().build();
+            }
+        } else {
+            return ResponseEntity.notFound().build();
         }
     }
 }
