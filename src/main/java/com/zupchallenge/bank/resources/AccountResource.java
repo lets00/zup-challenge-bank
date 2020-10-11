@@ -5,6 +5,7 @@ import com.zupchallenge.bank.repository.AccountRepository;
 import com.zupchallenge.bank.repository.ProposalRepository;
 import com.zupchallenge.bank.services.auth.JwtService;
 import com.zupchallenge.bank.services.email.EmailService;
+import com.zupchallenge.bank.services.token.TokenManagerService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
@@ -27,6 +28,9 @@ public class AccountResource {
 
     @Autowired
     JwtService token;
+
+    @Autowired
+    TokenManagerService tokenManagerService;
 
     @Autowired
     private EmailService emailService;
@@ -85,6 +89,7 @@ public class AccountResource {
         if (proposalByCpf != null) {
             if (proposalByCpf.getEmail().equals(confirmUser.getEmail())) {
                 String token = generateNumber(6);
+                tokenManagerService.createToken(confirmUser.getCpf(), token);
                 emailService.sendEmail(confirmUser.getEmail(), "Your validate token", token);
                 JsonMessage message = new JsonMessage("Validate token sent to email: " + proposalByCpf.getEmail());
                 return ResponseEntity.ok(message);
