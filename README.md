@@ -16,8 +16,10 @@ $ docker-compose up -d
 
 The command above creates a mysql database that will be used by the app to store all clients and accounts information.
 After that, execute:
+```sh
 $ ./mvnw package -DskipTests
 $ java -jar target/bank-0.0.1-SNAPSHOT.jar
+```
 
 By default, the app will be up on port **8080**
 
